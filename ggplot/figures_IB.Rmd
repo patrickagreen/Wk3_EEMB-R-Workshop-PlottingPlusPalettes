@@ -1,0 +1,266 @@
+---
+title: "EEMB R Seminar: ggplot"
+author: "Indra Boving"
+date: "1/12/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) #setup for markdown document
+```
+
+```{r}
+library(tidyverse) 
+library(here) #Easy to find data!
+library(lubridate) #Dealing with dates. 
+library(janitor) #Cleaning up headings, etc. 
+library(ggbeeswarm) #specific point aesthetics for ggplot
+library(dlookr) #for using diagnose()
+```
+
+#Trait data: 
+
+Data source: 
+
+Law, B. E., & Berner, L. T. (2015, July 20). NACP TERRA-PNW: Forest Plant Traits, NPP, Biomass, Soil Properties.
+accessible here: https://doi.org/10.3334/ORNLDAAC/1292
+
+full data description is available here:
+
+Berner, L. T., & Law, B. E. (2016). Plant traits, productivity, biomass and soil properties from forest sites in the Pacific Northwest, 1999–2014. Scientific Data, 3, 160002. https://doi.org/10.1038/sdata.2016.2
+
+Read in data: 
+```{r}
+trait_data <- read.csv(here("data", "PNW_data_for_Anderegg_2018_clean.csv")) %>% #use here() to tell read.csv where to look for the file (can also use here() with write.csv to organize where to put files)
+  clean_names() %>% #make all column titles lower_snake_case
+  mutate(name = binomial) #rename columns 
+
+dlookr::diagnose(trait_data) #take a look at the data
+```
+
+
+### Scatterplot: 
+
+Make a basic scatterplot: 
+```{r}
+scatter_plain <- trait_data %>% #pipe data into the plot
+  ggplot(aes(y = leaf_nitrogen, x = leaf_life)) + #show aesthetics
+  geom_point(aes(color = name)) #color by a group, in this case species: 
+scatter_plain
+```
+...overwhelming! Maybe we aren't interested in the specific species, so let's color by something more broad:
+
+```{r}
+trait_data %>% #pipe data into the plot
+  ggplot(aes(y = leaf_nitrogen, x = leaf_life)) + #show aesthetics
+  geom_point(aes(color = pft)) #color by a group
+```
+Let's say we want to look at just one ecoregion: 
+
+```{r}
+e_cascades <- trait_data %>% #just look at a subset of the data
+  filter(ecoregion == "Eastern Cascades") #from a specific ecoregion...
+```
+
+```{r}
+scatter_plain <- e_cascades %>% #pipe data into the plot
+  ggplot(aes(y = leaf_nitrogen, x = leaf_life)) + #show aesthetics
+  geom_point(aes(color = name)) #color by a group
+scatter_plain
+```
+Update the plot in a few ways: 
+```{r}
+scatter_labeled <- scatter_plain + #take older plot...
+  theme_minimal() + #...and change the theme
+  scale_x_continuous(breaks = c(4, 8, 12, 16)) + #break up the x-axis to smaller increments
+  scale_color_brewer(palette = "Dark2") + #change colors 
+  labs(x = "Leaf Lifespan (Years)", #add labels
+       y = "Leaf Nitrogen (%)", 
+       color = "Species") 
+scatter_labeled
+```
+...could also change shape to highlight the deciduous group: 
+```{r}
+scatter_pft <- e_cascades %>% 
+  ggplot(aes(y = leaf_nitrogen, x = leaf_life)) + 
+  geom_point(aes(color = name, 
+                 shape = pft)) + #add shape to pft
+  theme_minimal() + 
+  scale_x_continuous(breaks = c(4, 8, 12, 16)) + 
+  scale_color_brewer(palette = "Dark2") +  
+  labs(x = "Leaf Lifespan (Years)", 
+       y = "Leaf Nitrogen (%)", 
+       color = "Species", 
+       shape = "Functional Type") #update labels 
+scatter_pft
+```
+
+Add annotation: 
+```{r}
+scatter_annotated <- scatter_pft +
+  annotate("segment", x = 6, xend = 1.5, y = 2.5, yend = 2, #tell annotate() where the segment should go
+           colour = "black", size = .5, 
+           arrow = arrow(ends = "last", angle = 25, type = "closed", length = unit(.1,"cm")))  + #tell it that you want it to be an arrow
+  annotate("text", x= 6, y= 2.59, label= "Deciduous", size = 4) #add a text box
+scatter_annotated
+```
+
+### Boxplots:
+
+Basic boxplot:
+```{r, echo = FALSE, warning=FALSE}
+e_cascades %>% 
+  ggplot(aes(y = specific_leaf_area, x = family)) + #specify ggplot aesthetics
+  geom_boxplot()
+```
+A nicer way to visualize the same data: 
+
+```{r}
+e_cascades %>% 
+  ggplot(aes(y = specific_leaf_area, x = family)) + #specify ggplot aesthetics
+  geom_beeswarm(aes(color = family), 
+                cex = 1, #point spacing
+                size = 1,  #point size
+                alpha = .7) + #color the points, use beeswarm +
+  geom_boxplot(fill = NA, #layer on a boxplot...
+               width = 0.5, 
+               outlier.color = NA) + #...that has no fill
+  stat_summary(fun=mean, #specify what statistics we want to be showing with our boxplots
+               geom="point", #...in this case, we want to show the mean represented by a black point
+               shape=20, 
+               size=4, 
+               color="black", 
+               fill="black") + 
+  labs(y = "SLA", #replace labels
+      x = "Family", 
+      title = "East Cascades") +
+  scale_color_manual(values = c("olivedrab", "lightblue", "darkblue")) + #specify colors manually 
+  theme_minimal() + #give it a theme
+  theme(legend.position = "none") #remove the legend
+```
+
+Step by step:
+
+```{r, echo = FALSE, warning=FALSE}
+#make first plot 
+box_beeswarm <- e_cascades %>% 
+  ggplot(aes(y = specific_leaf_area, x = family)) + #specify ggplot aesthetics
+  #geom_point(aes(color = family)) +
+  geom_beeswarm(aes(color = family), 
+                cex = 1, #point spacing
+                size = 1,  #point size
+                alpha = .7)  #color the points, use beeswarm
+box_beeswarm
+```
+
+
+```{r, echo = FALSE, warning=FALSE}
+#layer on second plot
+beeswarm_boxplot <- box_beeswarm +
+  geom_boxplot(fill = NA, #layer on a boxplot...
+               width = 0.5, 
+               outlier.color = NA) + #...that has no fill
+  stat_summary(fun=mean, #specify what statistics we want to be showing with our boxplots
+               geom="point", #...in this case, we want to show the mean represented by a black point
+               shape=20, 
+               size=4, 
+               color="black", 
+               fill="black")
+beeswarm_boxplot
+```
+
+
+```{r, echo = FALSE, warning=FALSE}
+#add labels and change colors and theme: 
+boxplot_labeled<- beeswarm_boxplot + #take older figure
+  labs(y = "SLA", #replace labels
+      x = "Family", 
+      title = "East Cascades") +
+  scale_color_manual(values = c("olivedrab", "lightblue", "darkblue")) + #specify colors manually 
+  theme_minimal() + #give it a theme
+  theme(legend.position = "none") #remove the legend
+
+boxplot_labeled
+```
+
+
+# Chaparral data: 
+
+Data source: 
+
+Bartosh, H., B. Peterson, M.M. Halbur, T.L. Comendant, A.L. Whipple, and E. Micheli. 2020. Post-Tubbs Fire Chaparral Floristic Survey at Pepperwood Preserve in the California Coast Ranges 2018-2019 ver 1. Environmental Data Initiative. https://doi.org/10.6073/pasta/958a452d488a54100965e99ecda28fd8 (Accessed 2022-01-19).
+
+Great source for other environmental data: https://portal.edirepository.org
+
+
+```{r}
+chaparral_data_raw <- read.csv(here("data", "chaparral_pepperwood.csv")) #read in data
+
+dlookr::diagnose(chaparral_data_raw) #check out data
+```
+
+Use lubridate to make dates easier to work with: 
+
+```{r}
+chaparral_data_clean <- chaparral_data_raw %>% 
+  clean_names() %>% #make all columns lower_snake_case
+  mutate(date = ymd(date_collected), #use lubridate package to convert date column into date format
+         year = year(date), #use lubridate to extract year
+         month = month(date)) %>% #use lubridate to extract month
+  filter(plant_type %in% c("sprout", "seed")) #filter out only sprouters and seeders
+
+#unique(chaparral_data_raw$timing) #view how many unique values in a column
+class(chaparral_data_clean$date)
+```
+
+### Bar plots:
+
+```{r, echo = FALSE, warning=FALSE}
+chaparral_data_clean %>% 
+  ggplot(aes(y = percent_cover, x = fire_severity, fill = plant_type)) + #specify ggplot aesthetics
+  geom_col(position = "dodge") +
+  facet_wrap(~plant_type) + #we want to compare plant types and their percent cover post-fire
+  theme_light() + 
+  theme(legend.position = "none")
+```
+
+Rename some columns and reorder some factors so they appear in the correct order:
+
+```{r, echo = FALSE, warning=FALSE}
+chaparral_data_clean <- chaparral_data_clean %>% 
+  mutate(fire_severity = recode(fire_severity, "med" = "Medium", "high" = "High", "low" = "Low")) %>%  #change labels to be upper case
+  mutate(fire_severity = fct_relevel(fire_severity, "Low", "Medium", "High")) %>% #order those levels so they are in a logical order
+  mutate(plant_type = recode(plant_type, "sprout" = "Sprout", "seed" = "Seed"))
+```
+
+One way to visualize side-by-side columns: 
+
+```{r, echo = FALSE, warning=FALSE}
+chaparral_data_clean %>% 
+  ggplot(aes(y = percent_cover, x = fire_severity, fill = plant_type)) + #specify ggplot aesthetics
+  geom_col(position = "dodge") +
+  facet_wrap(~plant_type) + #we want to compare plant types and their percent cover post-fire
+  labs(y = "Percent Cover (%)", 
+      x = "Fire Severity", 
+      title = "Effect of fire severity on percent cover") +
+  scale_fill_manual(values = c("olivedrab", "lightblue", "darkblue")) +
+  theme_light() + 
+  theme(legend.position = "none")
+```
+
+Another way to visualize side-by-side columns:  
+
+```{r, echo = FALSE, warning=FALSE}
+chaparral_data_clean %>% 
+  ggplot(aes(y = percent_cover, x = fire_severity, fill = plant_type)) + #specify ggplot aesthetics
+  geom_col(position = "dodge") +
+ # facet_wrap(~plant_type) + #we want to compare plant types and their percent cover post-fire
+  labs(y = "Percent Cover (%)", 
+      x = "Fire Severity", 
+      title = "Effect of fire severity on percent cover") +
+  scale_fill_manual(values = c("olivedrab", "lightblue", "darkblue")) +
+  theme_light() + 
+  theme(legend.position = "none")
+```
+
+
