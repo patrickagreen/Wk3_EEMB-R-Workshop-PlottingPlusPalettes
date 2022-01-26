@@ -25,7 +25,7 @@ asvTable_melt
 # install.packages("ggplot")
 library(ggplot2)
 ggplot(asvTable_melt, aes(x=Treatment, y=RA_perc, fill=factor(ASV))) +
-  geom_bar(stat="identity", position="dodge") #, colour="black") 
+  geom_bar(stat="identity", position="dodge", colour="black") 
   
 # create a bar plot with colors from the RColorBrewer package
 # install.packages("RColorBrewer")
@@ -39,22 +39,24 @@ display.brewer.pal(n = 8, name = 'Dark2')
 brewer.pal(n = 8, name = "Dark2")
 
 # let us explore the color palettes in the RColorBrewer package in a Shiny app
-# install.packages("tmaptools")
+#install.packages("tmaptools")
 library(tmaptools)
 palette_explorer()
 
 # assign your chosen color palette to a variable instead of burying it in the ggplot code
-colors4ASVbars <- get_brewer_pal("Dark2", n = 7)
+colors4ASVbars <- get_brewer_pal("Dark2", n = length(unique(asvTable_melt$ASV)))
+#reorder for fun
+colors4ASVbars.2 <- colors4ASVbars[c(1,6,2,3,4,5,7)]
 
 # create the bar plot with the RColorBrewer color palette
 ggplot(asvTable_melt, aes(x=Treatment, y=RA_perc, fill=factor(ASV))) +
   geom_bar(stat="identity", position="dodge", colour="black") +
   ylab("Relative Abundance (%)") +  # add the title on y axis
   xlab("Incubation Times") +
-  scale_fill_manual(values = colors4ASVbars)
+  scale_fill_manual(values = colors4ASVbars.2)
 
 # lets see what the above colors appear as they do for folks with color blindness 
-# install.packages("dichromat")
+#install.packages("dichromat")
 library(dichromat)
 
 # assign the RColorBrewer color palette to a variable and run the dichromat function as shown below
@@ -68,7 +70,7 @@ ggplot(asvTable_melt, aes(x=Treatment, y=RA_perc, fill=factor(ASV))) +
   scale_fill_manual(values = colors4ASVbars_dichromat)
 
 ########################## some fun color palettes ############################# 
-# install.packages("wesanderson")
+install.packages("wesanderson")
 library(wesanderson)
 
 # assign a variable for the Wes Anderson Color palette 
@@ -83,7 +85,7 @@ ggplot(asvTable_melt, aes(x=Treatment, y=RA_perc, fill=factor(ASV))) +
 
 # copy and paste the url below in a web browser
 # https://emilhvitfeldt.github.io/r-color-palettes/discrete.html
-# install.packages("paletteer")
+#install.packages("paletteer")
 library(paletteer) 
 
 # assign a variable for your favorite color palette from Paletteer
@@ -95,4 +97,13 @@ ggplot(asvTable_melt, aes(x=Treatment, y=RA_perc, fill=factor(ASV))) +
   ylab("Relative Abundance (%)") +  # add the title on y axis
   xlab("Incubation Times") +
   scale_fill_manual(values = paletterColors)
+
+#another source for getting hex codes for colors
+#imagecolorpicker.com/en
+
+#a good source for finding colors that can then be shown to be grayscale friendly
+#colorbrewer2.org
+
+#fun colors from tv shows
+#https://cran.r-project.org/web/packages/ggsci/vignettes/ggsci.html
 
